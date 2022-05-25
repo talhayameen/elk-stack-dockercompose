@@ -1,0 +1,82 @@
+# Docker Compose YAML configuration
+# ELK configuration 
+# Last edit: 18/may/2022
+
+version: '3.5'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch:/usr/share/elasticsearch/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      # We defined Java heap space using ES_JAVA_OPTS environment variable. Max = 8GB and Minimum = 2GB
+      # Note: Elasticsearch Cluster requires significant amount of heap memory.
+      ES_JAVA_OPTS: "-Xmx8g -Xms2g"
+      ELASTIC_PASSWORD: changeme
+      # Use single-node discovery type to avoid boostrap checks on ES startup
+      discovery.type: single-node
+      # Publish host force to 'elk' network overlay
+      network.publish_host: _eth0_
+    networks:
+      - elk
+      
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.0
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,z
+      - ./logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro,z
+      # - ./logstash/pipeline/gelf:/usr/share/logstash/pipeline/gelf:ro,z
+      # - ./logstash/pipeline/beats:/usr/share/logstash/pipeline/beats:ro,z
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "5044:5044"
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+      - "12201:12201"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+      - logging-net
+    depends_on:
+      - elasticsearch
+      
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "7601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+    
+  # ElastAlert 2 service
+  # elastalert:
+  #   image: jertel/elastalert2
+  #   volumes:
+  #     - ./elastalert2/elastalert.yml:/opt/elastalert/config.yml
+  #     - ./elastalert2/rules:/opt/elastalert/rules
+  #   networks:
+  #     - elk
+  #   depends_on:
+  #     - elasticsearch
+
+networks:
+  logging-net:
+  elk:
+
+volumes:
+  elasticsearch:

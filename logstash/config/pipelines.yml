@@ -1,0 +1,6 @@
+- pipeline.id: gelf-pipeline
+  path.config: "/usr/share/logstash/pipeline/gelf/gelf.conf"
+  pipeline.workers: 2
+- pipeline.id: beats-pipeline
+  path.config: "/usr/share/logstash/pipeline/beats/beats.conf"
+  queue.type: persisted

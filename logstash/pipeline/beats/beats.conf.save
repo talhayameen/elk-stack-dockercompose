@@ -1,0 +1,36 @@
+input {
+	beats {
+		port => 5044
+	}
+	tcp {
+		port => 5000
+	}
+}
+
+filter {
+	grok {
+		match => { "message" => "(?<timestamp>[0-9]{2} %{MONTH} [0-9]{4} [0-9]{2}\:[0-9]{2}\:[0-9]{2}\,[0-9]{3}) %{LOGLEVEL:log_type}  \[%{GREEDYDATA:log_name}\] %{GREEDYDATA:raw_message}" }
+	}
+	grok {
+		match => { "raw_message" => 'DIF_TIME="(?<iib_duration>[0-9]*)"' }
+		break_on_match => false
+	}
+	grok {
+		match => { "raw_message" => 'ORDER_ID="(?<iib_order_id>[a-zA-Z0-9]*)"' }
+		break_on_match => false
+	}
+	grok {
+		match => { "raw_message" => 'TARGET_SYSTEM_NAME="(?<iib_target_system_name>[a-zA-Z]*)"' }
+		break_on_match => false
+	}
+	grok {
+		match => { "raw_message" => 'OPERAT}
+
+output {
+	elasticsearch {
+		hosts => "elasticsearch:9200"
+		user => "elastic"
+		password => "changeme"
+		ecs_compatibility => disabled
+	}
+}
